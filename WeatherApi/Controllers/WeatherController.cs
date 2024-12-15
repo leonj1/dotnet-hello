@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using WeatherApi.Models;
 using WeatherApi.Services;
 
 namespace WeatherApi.Controllers;
@@ -17,7 +18,19 @@ public class WeatherController : ControllerBase
     [HttpGet("{region}")]
     public async Task<IActionResult> Get(string region)
     {
-        var weather = await _weatherStrategy.GetWeatherAsync(region);
-        return Ok(weather);
+        if (string.IsNullOrWhiteSpace(region))
+        {
+            return NotFound();
+        }
+
+        try
+        {
+            var weather = await _weatherStrategy.GetWeatherAsync(region);
+            return Ok(weather);
+        }
+        catch (ArgumentException)
+        {
+            return NotFound();
+        }
     }
 }

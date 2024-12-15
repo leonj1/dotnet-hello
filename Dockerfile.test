@@ -1,0 +1,11 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+WORKDIR /tests
+COPY . .
+
+# Restore dependencies and build the solution
+RUN dotnet restore WeatherApi.sln
+RUN dotnet build WeatherApi.sln --no-restore -c Release
+
+# Run tests and generate coverage report
+ENTRYPOINT ["dotnet", "test", "WeatherApi.sln", "--logger:trx", "--results-directory", "/tests/TestResults", "--collect:XPlat Code Coverage"]
