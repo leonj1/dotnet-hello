@@ -1,12 +1,25 @@
 using Microsoft.AspNetCore.Mvc;
+using Moq;
 using WeatherApi.Controllers;
 using WeatherApi.Models;
 using WeatherApi.Services;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace WeatherApi.Tests;
 
+[Collection("WeatherApi Tests")]
 public class WeatherControllerTests
 {
+    private readonly Mock<ILogger<WeatherController>> _logger;
+    private readonly ITestOutputHelper _output;
+
+    public WeatherControllerTests(ITestOutputHelper output)
+    {
+        _logger = new Mock<ILogger<WeatherController>>();
+        _output = output;
+    }
+
     private static readonly DateTime CurrentTime = DateTime.Parse("2024-12-15T01:19:41Z");
 
     public static IEnumerable<object[]> ValidWeatherTestCases()
@@ -69,21 +82,21 @@ public class WeatherControllerTests
         string testDescription)
     {
         // Arrange
-        var strategy = new MockWeatherStrategy();
-        var controller = new WeatherController(strategy);
+        _output.WriteLine($"Running test: {testDescription}");
+        var mockStrategy = new Mock<IWeatherStrategy>();
+        mockStrategy.Setup(s => s.GetWeatherAsync(region))
+            .ReturnsAsync(expectedWeather);
+
+        var controller = new WeatherController(_logger.Object, mockStrategy.Object);
 
         // Act
         var result = await controller.Get(region);
 
         // Assert
-        var objectResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(expectedStatusCode, objectResult.StatusCode);
-
-        var weather = Assert.IsType<Weather>(objectResult.Value);
-        Assert.Equal(expectedWeather.Region, weather.Region);
-        Assert.Equal(expectedWeather.Temperature, weather.Temperature);
-        Assert.Equal(expectedWeather.Humidity, weather.Humidity);
-        Assert.Equal(expectedWeather.Condition, weather.Condition);
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(expectedStatusCode, okResult.StatusCode);
+        var weather = Assert.IsType<Weather>(okResult.Value);
+        Assert.Equal(expectedWeather, weather);
     }
 
     [Theory]
@@ -94,14 +107,18 @@ public class WeatherControllerTests
         string testDescription)
     {
         // Arrange
-        var strategy = new MockWeatherStrategy();
-        var controller = new WeatherController(strategy);
+        _output.WriteLine($"Running test: {testDescription}");
+        var mockStrategy = new Mock<IWeatherStrategy>();
+        mockStrategy.Setup(s => s.GetWeatherAsync(region))
+            .ThrowsAsync(new ArgumentException("Invalid region"));
+
+        var controller = new WeatherController(_logger.Object, mockStrategy.Object);
 
         // Act
         var result = await controller.Get(region);
 
         // Assert
-        var objectResult = Assert.IsType<NotFoundResult>(result);
-        Assert.Equal(expectedStatusCode, objectResult.StatusCode);
+        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal(expectedStatusCode, notFoundResult.StatusCode);
     }
 }

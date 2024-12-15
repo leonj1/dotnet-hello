@@ -1,11 +1,19 @@
 using WeatherApi.Models;
 using WeatherApi.Services;
+using Xunit;
 
 namespace WeatherApi.Tests;
 
+[Collection("WeatherApi Tests")]
 public class WeatherStrategyTests
 {
     private static readonly DateTime CurrentTime = DateTime.Parse("2024-12-15T01:19:41Z");
+    private readonly ITestOutputHelper _output;
+
+    public WeatherStrategyTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
 
     public static IEnumerable<object[]> ValidWeatherStrategyTestCases()
     {
@@ -60,6 +68,7 @@ public class WeatherStrategyTests
         string testDescription)
     {
         // Arrange
+        _output.WriteLine($"Running test: {testDescription}");
         var strategy = new MockWeatherStrategy();
 
         // Act
@@ -80,6 +89,7 @@ public class WeatherStrategyTests
         string testDescription)
     {
         // Arrange
+        _output.WriteLine($"Running test: {testDescription}");
         var strategy = new MockWeatherStrategy();
 
         // Act & Assert

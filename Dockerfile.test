@@ -1,11 +1,43 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0
+FROM mcr.microsoft.com/dotnet/sdk:7.0
 
-WORKDIR /tests
-COPY . .
+WORKDIR /app
 
-# Restore dependencies and build the solution
-RUN dotnet restore WeatherApi.sln
-RUN dotnet build WeatherApi.sln --no-restore -c Release
+# Create user with same UID as host user
+RUN useradd -m -u 1000 dotnet
 
-# Run tests and generate coverage report
-ENTRYPOINT ["dotnet", "test", "WeatherApi.sln", "--logger:trx", "--results-directory", "/tests/TestResults", "--collect:XPlat Code Coverage"]
+# Create directories and set permissions
+RUN mkdir -p /app/.dotnet /tests/TestResults /tests/coverage && \
+    chown -R dotnet:dotnet /app /tests && \
+    chmod -R 777 /tests
+
+# Install report generator
+RUN dotnet tool install --tool-path /app/.dotnet/tools dotnet-reportgenerator-globaltool --version 5.1.26
+
+# Copy solution files
+COPY --chown=dotnet:dotnet WeatherApi/*.csproj /app/WeatherApi/
+COPY --chown=dotnet:dotnet WeatherApi.Tests/*.csproj /app/WeatherApi.Tests/
+COPY --chown=dotnet:dotnet *.sln /app/
+
+# Restore NuGet packages
+RUN cd /app && \
+    dotnet restore && \
+    chown -R dotnet:dotnet /root/.nuget
+
+# Copy the rest of the source code
+COPY --chown=dotnet:dotnet WeatherApi/ /app/WeatherApi/
+COPY --chown=dotnet:dotnet WeatherApi.Tests/ /app/WeatherApi.Tests/
+
+# Copy and set permissions for test script
+COPY --chown=dotnet:dotnet ./run-tests.sh /app/run-tests.sh
+RUN chmod +x /app/run-tests.sh
+
+# Switch to non-root user
+USER dotnet
+
+# Set environment variables
+ENV PATH="/app/.dotnet/tools:${PATH}"
+ENV DOTNET_CLI_HOME=/app
+ENV HOME=/app
+ENV DOTNET_ROOT=/usr/share/dotnet
+
+CMD ["/app/run-tests.sh"]

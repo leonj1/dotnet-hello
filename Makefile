@@ -1,6 +1,6 @@
 # Makefile for Weather API
 
-.PHONY: build run stop clean test test-docker test-coverage test-clean logs rebuild help
+.PHONY: build run stop clean test test-docker test-clean logs rebuild help
 
 IMAGE_NAME = weather-api
 CONTAINER_NAME = weather-api-container
@@ -45,21 +45,23 @@ clean: stop
 
 test: test-docker
 
-test-docker:
+test-docker: clean
 	@echo "Building test image..."
-	docker build -t $(TEST_IMAGE_NAME) -f Dockerfile.test .
+	docker build -t weather-api-test -f Dockerfile.test .
 	@echo "Running tests in container..."
-	docker run --name $(TEST_CONTAINER_NAME) $(TEST_IMAGE_NAME)
-	@echo "Copying test results..."
-	docker cp $(TEST_CONTAINER_NAME):/tests/TestResults ./TestResults
+	docker run --rm --name weather-api-test-container \
+		--user 1000:1000 \
+		-e HOME=/app \
+		-e DOTNET_CLI_HOME=/app \
+		weather-api-test
 	@echo "Test results available in ./TestResults"
+	@echo "Coverage report available in ./coverage"
 
 test-clean:
 	@echo "Cleaning up test artifacts..."
-	-docker stop $(TEST_CONTAINER_NAME)
-	-docker rm $(TEST_CONTAINER_NAME)
-	-docker rmi $(TEST_IMAGE_NAME)
-	-rm -rf ./TestResults
+	@-docker rm -f weather-api-test-container 2>/dev/null || true
+	@-docker rmi -f weather-api-test 2>/dev/null || true
+	@-sudo rm -rf ./TestResults/* ./coverage/* 2>/dev/null || true
 	@echo "Test cleanup complete"
 
 logs:

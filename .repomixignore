@@ -1,0 +1,6 @@
+.venv
+bar
+bin
+obj
+.aider*
+
