@@ -15,7 +15,7 @@ WORKDIR /app
 COPY --from=build /app .
 
 # Configure aspnet to bind to port 80 on all interfaces
-ENV ASPNETCORE_URLS=http://0.0.0.0:80
+ENV ASPNETCORE_URLS=http://+:80
 EXPOSE 80
 
 ENTRYPOINT ["dotnet", "WeatherApi.dll"]
